@@ -1,5 +1,5 @@
 # Base will install runtime dependencies and configure generics
-FROM node:16-slim as base
+FROM node:22-slim as base
 
 LABEL maintainer="Marko Kajzer <markokajzer91@gmail.com>, Nico Stapelbroek <discord-soundbot@nstapelbroek.com>"
 
@@ -10,7 +10,7 @@ WORKDIR /app
 RUN apt-get -qq update > /dev/null && \
     apt-get -qq -y install wget > /dev/null && \
     rm -rf /var/lib/apt/lists
-RUN wget -qO /tini https://github.com/krallin/tini/releases/download/v0.18.0/tini-$(dpkg --print-architecture) && \
+RUN wget -qO /tini https://github.com/krallin/tini/releases/download/v0.19.0/tini-$(dpkg --print-architecture) && \
     chmod +x /tini
 
 ####################################################################################################
@@ -20,11 +20,8 @@ FROM base as builder
 
 # Install ffmpeg and other deps
 RUN apt-get -qq update > /dev/null && \
-    apt-get -qq -y install git g++ make python3.11 tar xz-utils > /dev/null && \
+    apt-get -qq -y install git g++ make python3.11 ffmpeg tar xz-utils > /dev/null && \
     rm -rf /var/lib/apt/lists
-RUN wget -qO /tmp/ffmpeg.tar.xz https://johnvansickle.com/ffmpeg/releases/ffmpeg-release-$(dpkg --print-architecture)-static.tar.xz && \
-    tar -x -C /usr/local/bin --strip-components 1 -f /tmp/ffmpeg.tar.xz --wildcards '*/ffmpeg' && \
-    rm /tmp/ffmpeg.tar.xz
 
 ####################################################################################################
 
@@ -46,7 +43,11 @@ RUN npm run build
 # release has the bare minimum to run the application
 FROM base as release
 
-COPY --from=build --chown=node:node /usr/local/bin/ffmpeg /usr/local/bin/ffmpeg
+# Install ffmpeg in release stage for proper library dependencies
+RUN apt-get -qq update > /dev/null && \
+    apt-get -qq -y install ffmpeg > /dev/null && \
+    rm -rf /var/lib/apt/lists
+
 COPY --from=build --chown=node:node /app .
 
 USER node
