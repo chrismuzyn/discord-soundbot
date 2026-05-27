@@ -15,7 +15,7 @@ export class ComboCommand extends QueueCommand {
     if (!message.member) return;
 
     if (params.length < this.numberOfParameters) {
-      message.channel.send(this.usage);
+      message.sendableChannel.send(this.usage);
       return;
     }
 

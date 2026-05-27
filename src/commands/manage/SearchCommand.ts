@@ -13,7 +13,7 @@ export class SearchCommand extends Command {
 
   public run(message: Message, params: string[]) {
     if (params.length !== this.numberOfParameters) {
-      message.channel.send(this.usage);
+      message.sendableChannel.send(this.usage);
       return;
     }
 

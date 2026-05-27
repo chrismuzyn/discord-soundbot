@@ -6,6 +6,6 @@ export class PingCommand extends Command {
   public readonly triggers = ["ping"];
 
   public run(message: Message) {
-    message.channel.send("Pong!");
+    message.sendableChannel.send("Pong!");
   }
 }

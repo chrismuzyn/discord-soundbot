@@ -10,7 +10,7 @@ export class LastAddedCommand extends Command {
   private readonly amount = 5;
 
   public run(message: Message) {
-    message.channel.send(["```", ...this.getLastAddedSounds(), "```"].join("\n"));
+    message.sendableChannel.send(["```", ...this.getLastAddedSounds(), "```"].join("\n"));
   }
 
   private getLastAddedSounds() {

@@ -14,14 +14,14 @@ export class TagCommand extends Command {
 
   public run(message: Message, params: string[]) {
     if (params.length < this.numberOfParameters) {
-      message.channel.send(this.usage);
+      message.sendableChannel.send(this.usage);
       return;
     }
 
     // biome-ignore lint/style/noNonNullAssertion: verified params above
     const sound = params.shift()!;
     if (!getSounds().includes(sound)) {
-      message.channel.send(localize.t("commands.tag.notFound", { sound }));
+      message.sendableChannel.send(localize.t("commands.tag.notFound", { sound }));
       return;
     }
 

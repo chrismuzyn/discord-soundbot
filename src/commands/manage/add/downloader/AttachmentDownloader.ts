@@ -35,7 +35,7 @@ export default class AttachmentDownloader extends BaseDownloader {
       await this.fetchAndSaveSound(attachment);
 
       const name = attachment.name.split(".")[0];
-      message.channel.send(localize.t("commands.add.success", { name }));
+      message.sendableChannel.send(localize.t("commands.add.success", { name }));
     }
   }
 

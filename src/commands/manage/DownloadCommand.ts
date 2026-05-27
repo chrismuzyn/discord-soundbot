@@ -11,7 +11,7 @@ export class DownloadCommand extends Command {
 
   public run(message: Message, params: string[]) {
     if (params.length !== this.numberOfParameters) {
-      message.channel.send(this.usage);
+      message.sendableChannel.send(this.usage);
       return;
     }
 
@@ -19,6 +19,6 @@ export class DownloadCommand extends Command {
     if (!existsSound(sound)) return;
 
     const attachment = new AttachmentBuilder(getPathForSound(sound));
-    message.channel.send({ files: [attachment] });
+    message.sendableChannel.send({ files: [attachment] });
   }
 }

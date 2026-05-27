@@ -17,7 +17,7 @@ export class RenameCommand extends Command {
     if (!message.member) return;
 
     if (params.length !== this.numberOfParameters) {
-      message.channel.send(this.usage);
+      message.sendableChannel.send(this.usage);
       return;
     }
 
@@ -25,12 +25,12 @@ export class RenameCommand extends Command {
     const sounds = getSounds();
 
     if (!sounds.includes(oldName)) {
-      message.channel.send(localize.t("commands.rename.notFound", { oldName }));
+      message.sendableChannel.send(localize.t("commands.rename.notFound", { oldName }));
       return;
     }
 
     if (sounds.includes(newName)) {
-      message.channel.send(localize.t("errors.sounds.exists", { sound: newName }));
+      message.sendableChannel.send(localize.t("errors.sounds.exists", { sound: newName }));
       return;
     }
 
@@ -40,6 +40,6 @@ export class RenameCommand extends Command {
     fs.renameSync(oldFile, newFile);
     soundsDb.rename(oldName, newName);
 
-    message.channel.send(localize.t("commands.rename.success", { newName, oldName }));
+    message.sendableChannel.send(localize.t("commands.rename.success", { newName, oldName }));
   }
 }

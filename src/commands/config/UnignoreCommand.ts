@@ -13,14 +13,14 @@ export class UnignoreCommand extends Command {
   public run(message: Message) {
     const { users } = message.mentions;
     if (users.size < 1) {
-      message.channel.send(this.usage);
-      message.channel.send(localize.t("helpers.userFinder.error"));
+      message.sendableChannel.send(this.usage);
+      message.sendableChannel.send(localize.t("helpers.userFinder.error"));
       return;
     }
 
     users.forEach((user) => {
       ignoreList.remove(user.id);
-      message.channel.send(localize.t("commands.ignore.remove", { user: user.username }));
+      message.sendableChannel.send(localize.t("commands.ignore.remove", { user: user.username }));
     });
   }
 }

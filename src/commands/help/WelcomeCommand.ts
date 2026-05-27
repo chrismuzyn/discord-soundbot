@@ -8,6 +8,6 @@ export class WelcomeCommand extends ConfigCommand {
   public readonly triggers = ["welcome"];
 
   public run(message: Message) {
-    message.channel.send(localize.t("welcome", { prefix: this.config.prefix }));
+    message.sendableChannel.send(localize.t("welcome", { prefix: this.config.prefix }));
   }
 }

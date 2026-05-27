@@ -25,14 +25,14 @@ export class LanguageCommand extends ConfigCommand {
       this.getLanguageMap().findKey((value, key) => [key, value].includes(chosenLanguage));
 
     if (!language) {
-      message.channel.send({ embeds: [this.help()] });
+      message.sendableChannel.send({ embeds: [this.help()] });
       return;
     }
 
     this.config.set("language", [language]);
     localize.setLocale(language);
 
-    message.channel.send(
+    message.sendableChannel.send(
       localize.t("commands.lang.success", { flag: FLAGS[language], language: chosenLanguage })
     );
   }

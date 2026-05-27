@@ -14,11 +14,11 @@ export default abstract class BaseDownloader {
 
   protected handleError(message: Message, error: Error) {
     if (HANDLED_ERRORS.includes(error.name)) {
-      message.channel.send(error.message);
+      message.sendableChannel.send(error.message);
       return;
     }
 
     console.error(error);
-    message.channel.send(localize.t("errors.unspecific"));
+    message.sendableChannel.send(localize.t("errors.unspecific"));
   }
 }

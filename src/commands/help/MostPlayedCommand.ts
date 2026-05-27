@@ -12,7 +12,7 @@ export class MostPlayedCommand extends Command {
     const formattedMessage = this.getFormattedMessage();
     if (!formattedMessage) return;
 
-    message.channel.send(formattedMessage);
+    message.sendableChannel.send(formattedMessage);
   }
 
   private getFormattedMessage() {

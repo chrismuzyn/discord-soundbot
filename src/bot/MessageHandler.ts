@@ -39,7 +39,7 @@ export default class MessageHandler {
     const commandToRun = this.commands.get(command);
 
     if (commandToRun.elevated && !userHasElevatedRole(message.member)) {
-      message.channel.send(localize.t("errors.unauthorized"));
+      message.sendableChannel.send(localize.t("errors.unauthorized"));
       return;
     }
 
