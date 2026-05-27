@@ -7,6 +7,7 @@ import {
   VoiceConnectionStatus,
   createAudioPlayer,
   createAudioResource,
+  entersState,
   joinVoiceChannel,
 } from "@discordjs/voice";
 import { DiscordAPIError, type Message } from "discord.js";
@@ -29,6 +30,9 @@ export default class SoundQueue {
   constructor(config: Config) {
     this.config = config;
     this.player = createAudioPlayer();
+    this.player.on("error", (error) => {
+      console.error("AudioPlayer error:", error.message);
+    });
   }
 
   public add(item: QueueItem) {
@@ -42,8 +46,13 @@ export default class SoundQueue {
     if (this.isStartable()) this.playNext();
   }
 
+  private nextResolve: Nullable<() => void> = null;
+
   public next() {
-    this.player.emit("next");
+    if (this.nextResolve) {
+      this.nextResolve();
+      this.nextResolve = null;
+    }
   }
 
   public clear() {
@@ -88,6 +97,8 @@ export default class SoundQueue {
         guildId: this.currentSound.channel.guild.id,
       });
 
+      await entersState(connection, VoiceConnectionStatus.Ready, 30_000);
+
       await this.playSound(connection);
       this.handleFinishedPlayingSound(connection);
     } catch (error) {
@@ -105,17 +116,39 @@ export default class SoundQueue {
 
     return new Promise((resolve) => {
       this.player.play(resource);
-      this.player.on("stateChange", (oldState, newState) => {
-        // TODO: check if this runs multiple times when looping / playing multiple sounds
-        if (this.becameIdleAfterPlaying(oldState, newState)) resolve();
-      });
-      // @ts-expect-error
-      this.player.on("next", resolve);
 
-      // TODO: Forgot why we need this. Investigate.
-      connection.on("stateChange", (_, newState) => {
-        if (newState.status === VoiceConnectionStatus.Disconnected) resolve();
-      });
+      const onPlayerStateChange = (oldState: AudioPlayerState, newState: AudioPlayerState) => {
+        if (this.becameIdleAfterPlaying(oldState, newState)) {
+          cleanup();
+          resolve();
+        }
+      };
+
+      const onNext = () => {
+        cleanup();
+        resolve();
+      };
+
+      this.nextResolve = onNext;
+
+      const onConnectionStateChange = (_: unknown, newState: { status: VoiceConnectionStatus }) => {
+        if (
+          newState.status === VoiceConnectionStatus.Disconnected ||
+          newState.status === VoiceConnectionStatus.Destroyed
+        ) {
+          cleanup();
+          resolve();
+        }
+      };
+
+      const cleanup = () => {
+        this.player.off("stateChange", onPlayerStateChange);
+        this.nextResolve = null;
+        connection.off("stateChange", onConnectionStateChange);
+      };
+
+      this.player.on("stateChange", onPlayerStateChange);
+      connection.on("stateChange", onConnectionStateChange);
     });
   }
 
@@ -152,8 +185,9 @@ export default class SoundQueue {
       error.code === "VOICE_JOIN_CHANNEL" &&
       this.currentSound?.message
     ) {
-      await this.currentSound.message.channel.send(localize.t("errors.permissions"));
-      process.exit();
+      await this.currentSound.message.sendableChannel.send(localize.t("errors.permissions"));
+      this.currentSound = null;
+      return;
     }
 
     console.error("Error occured!", "\n", error);
