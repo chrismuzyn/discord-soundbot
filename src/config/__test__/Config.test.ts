@@ -1,3 +1,6 @@
+import fs from "node:fs";
+import path from "node:path";
+
 import Config from "../Config";
 
 jest.mock("node:fs");
@@ -91,5 +94,65 @@ describe("Setting config from Environment Variables", () => {
 
     expect(testedConfig.acceptedExtensions).toEqual([".mp3", ".ogg", ".wav", ".mp4", ".flac"]);
     expect(testedConfig.elevatedRoles).toEqual(["admin", "test"]);
+  });
+});
+
+describe("Persisting the config", () => {
+  const CONFIG_ENV_KEYS = [
+    "CLIENT_ID",
+    "TOKEN",
+    "LANGUAGE",
+    "PREFIX",
+    "ACCEPTED_EXTENSIONS",
+    "MAXIMUM_FILE_SIZE",
+    "DELETE_MESSAGES",
+    "STAY_IN_CHANNEL",
+    "TIMEOUT",
+    "GAME",
+    "ELEVATED_ROLES",
+  ];
+
+  // Earlier tests mutate process.env without restoring it, so make sure
+  // no config environment variables leak into these tests
+  beforeEach(() => {
+    CONFIG_ENV_KEYS.forEach((key) => delete process.env[key]);
+  });
+
+  test("Constructing the config with multiple matching environment variables writes the file exactly once", () => {
+    process.env.CLIENT_ID = randomString(20);
+    process.env.TOKEN = randomString(20);
+    process.env.GAME = randomString(20);
+
+    new Config();
+
+    expect(fs.writeFileSync).toHaveBeenCalledTimes(1);
+
+    const writeFileSync = fs.writeFileSync as unknown as jest.Mock;
+    const [writtenPath, writtenContents] = writeFileSync.mock.calls[0];
+    expect(writtenPath).toBe(path.join(process.cwd(), "config", "config.json"));
+    expect(JSON.parse(writtenContents)).toEqual(
+      expect.objectContaining({
+        clientId: process.env.CLIENT_ID,
+        token: process.env.TOKEN,
+        game: process.env.GAME,
+      })
+    );
+  });
+
+  test("Constructing the config without matching environment variables does not write the file", () => {
+    new Config();
+
+    expect(fs.writeFileSync).not.toHaveBeenCalled();
+  });
+
+  test("Changing a config option through set writes the file exactly once", () => {
+    const testedConfig = new Config();
+
+    expect(fs.writeFileSync).not.toHaveBeenCalled();
+
+    testedConfig.set("game", ["My", "Sound", "Board"]);
+
+    expect(fs.writeFileSync).toHaveBeenCalledTimes(1);
+    expect(testedConfig.game).toBe("My Sound Board");
   });
 });

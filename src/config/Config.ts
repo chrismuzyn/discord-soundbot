@@ -49,23 +49,7 @@ export default class Config implements ConfigInterface {
   public set(field: string, value: string[]): ConfigValue {
     if (!this.JSON_KEYS.includes(field)) throw Error(`Unknown config option: ${field}`);
 
-    let newValue: ConfigValue;
-
-    switch (typeof this[field]) {
-      case "string":
-        newValue = field === "game" ? value.join(" ") : value[0];
-        break;
-      case "number":
-        newValue = Number.parseFloat(value[0]);
-        break;
-      case "boolean":
-        newValue = value[0].toLowerCase() === "true";
-        break;
-      // case "object":
-      default:
-        newValue = value;
-        break;
-    }
+    const newValue = this.coerceValue(field, value);
 
     this[field] = newValue;
     this.writeToConfig();
@@ -98,25 +82,52 @@ export default class Config implements ConfigInterface {
     this.setFrom(savedConfig);
   }
 
+  private coerceValue(field: string, value: string[]): ConfigValue {
+    switch (typeof this[field]) {
+      case "string":
+        return field === "game" ? value.join(" ") : value[0];
+      case "number":
+        return Number.parseFloat(value[0]);
+      case "boolean":
+        return value[0].toLowerCase() === "true";
+      // case "object":
+      default:
+        return value;
+    }
+  }
+
   private initializeFromEnvironmentVariables() {
-    Object.keys(process.env)
-      .filter((envKey) => this.JSON_KEYS.includes(camelCase(envKey)))
-      .forEach((envKey) => {
-        // biome-ignore lint/style/noNonNullAssertion: already filtered above
-        let envValue = [process.env[envKey]!];
-        const configKey = camelCase(envKey);
+    const matchingEnvKeys = Object.keys(process.env).filter((envKey) =>
+      this.JSON_KEYS.includes(camelCase(envKey))
+    );
 
-        if (this.ARRAY_VALUES.includes(configKey)) {
-          envValue = envValue[0].split(",");
-        }
+    // Apply all values in memory first, then persist once.
+    // Writing once per value caused concurrent fs.writeFile calls that
+    // interleaved and corrupted config.json.
+    matchingEnvKeys.forEach((envKey) => {
+      // biome-ignore lint/style/noNonNullAssertion: already filtered above
+      let envValue = [process.env[envKey]!];
+      const configKey = camelCase(envKey);
 
-        this.set(configKey, envValue);
-      });
+      if (this.ARRAY_VALUES.includes(configKey)) {
+        envValue = envValue[0].split(",");
+      }
+
+      this[configKey] = this.coerceValue(configKey, envValue);
+    });
+
+    if (matchingEnvKeys.length > 0) {
+      this.writeToConfig();
+    }
   }
 
   private writeToConfig() {
-    fs.writeFile(this.CONFIG_PATH, JSON.stringify(this, this.JSON_KEYS, 2), (error) => {
-      if (error) console.error(error);
-    });
+    try {
+      // Synchronous on purpose: an async write interleaving with another
+      // write to the same file leaves trailing bytes and corrupts the JSON.
+      fs.writeFileSync(this.CONFIG_PATH, JSON.stringify(this, this.JSON_KEYS, 2));
+    } catch (error) {
+      console.error(error);
+    }
   }
 }

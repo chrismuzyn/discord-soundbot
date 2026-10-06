@@ -11,6 +11,12 @@ export class StopCommand extends QueueCommand {
 
     this.queue.clear();
 
-    message.guild.members.me.voice.disconnect();
+    const { voice } = message.guild.members.me;
+    if (!voice.channel) return;
+
+    // Disconnecting while not connected to a voice channel is rejected by
+    // the API (error 5006), which would crash the process as an unhandled
+    // rejection if left uncaught.
+    voice.disconnect().catch(() => undefined);
   }
 }
